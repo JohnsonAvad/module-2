@@ -44,7 +44,7 @@ def load_pdf_text(file_path: str) -> str:
              message=".*Cannot set gray non-stroke color.*"
 )
 
-         file_path = "./data/the-seven-habits.pdf"
+         
          loader = PDFPlumberLoader(file_path)
          docs = loader.load()
          
@@ -72,7 +72,7 @@ def setup_chroma_collection(pdf_path: str):
 
 
 
-        vectors = embedding_function(texts)
+        vectors = np.array(embedding_function(texts))
 
 
 # we instantiate a Chromadb Client which allows 
