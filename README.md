@@ -70,22 +70,21 @@ This project is a **Retrieval-Augmented Generation (RAG)** chatbot built with **
 ```yaml
 version: "3.9"
 services:
-  chroma:
-    image: chromadb/chroma
-    container_name: chroma-vector-db
-    volumes:
-      - ./data_store:/chroma/chroma
-    ports:
-      - "8000:8000"
-
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8501:8501"
-    depends_on:
-      - chroma
+    env_file:
+      - .env
+
+  chroma:
+    image: chromadb/chroma:latest
     volumes:
-      - .:/app
+      - ./chroma_db:/data
+    ports:
+      - "8765:8000"
 ```
 
 ---
