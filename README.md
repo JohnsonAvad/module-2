@@ -1,111 +1,169 @@
-# 🧠 LangChain Chatbot using Streamlit & Groq
 
-This is an interactive chatbot built with **Streamlit**, powered by **LangChain** and the **Groq API** using the `llama-3.1-8b-instant` model. It supports dynamic user interactions and retains conversation history using Streamlit's `session_state`.
+# 🧠 RAG Chatbot (Streamlit + ChromaDB + Groq)
+
+This project is a **Retrieval-Augmented Generation (RAG)** chatbot built with **Streamlit**, **LangChain**, **ChromaDB**, and **Groq**. It enables users to query a pre-loaded document (e.g., a PDF) and receive intelligent answers powered by Groq’s LLM. Users **do not upload** their own documents—the document is already processed and indexed in the backend.
 
 ---
 
-## 🚀 Features
+## 🚀 Key Features (MVPs)
 
-- 🤖 Chatbot interface using Streamlit
-- 💬 Memory: Remembers previous messages during a session
-- ⚡ Powered by Groq’s blazing fast LLM
-- 🧱 Built with LangChain for structured messaging
-- 🔐 Uses `.env` file to securely store API keys
+- ✅ Load and split a static PDF into text chunks
+- ✅ Generate sentence embeddings using SentenceTransformer (`all-MiniLM-L6-v2`)
+- ✅ Store and retrieve document vectors from **ChromaDB**
+- ✅ Embed user queries and match them semantically with chunks
+- ✅ Use **Groq LLM** (via LangChain) to respond to questions with retrieved context
+- ✅ Real-time interactive **Streamlit chatbot UI**
+
+---
+
+## 🧠 High-Level System Architecture
+
+```plaintext
+        ┌─────────────┐
+        │  .env File  │        ◄── GROQ API Key, Model Name
+        └─────┬───────┘
+              │
+        ┌─────▼───────┐
+        │ PDF Loader  │        ◄── PDF is loaded from /data/
+        └─────┬───────┘
+              │
+        ┌─────▼────────────┐
+        │ Text Splitter    │        ◄── RecursiveCharacterTextSplitter
+        └─────┬────────────┘
+              │
+        ┌─────▼────────────┐
+        │ Embedding Model  │        ◄── SentenceTransformer (MiniLM)
+        └─────┬────────────┘
+              │
+        ┌─────▼────────────┐
+        │  ChromaDB        │        ◄── Vector Store (document chunks)
+        └─────┬────────────┘
+              │
+┌─────────────▼────────────┐
+│   Streamlit Chatbot UI   │  ◄── Groq LLM fetches response based on query + context
+└──────────────────────────┘
+```
 
 ---
 
 ## 📁 Project Structure
 
 ```bash
-├── chatbot_main.py         # Main Streamlit application
-├── .env                   # Environment variables (API keys and model name)
-├── requirements.txt       # Python dependencies
-└── README.md              # This file
+├── chatbot_main.py         # Streamlit app: chatbot interface + Groq LLM
+├── chroma_setup.py         # Handles loading PDF, chunking, embedding, and storing in ChromaDB
+├── data/
+│   └── the-seven-habits.pdf  # Preloaded PDF document
+├── data_store/             # Persistent ChromaDB vector database
+├── Dockerfile              # Docker config for Streamlit app
+├── docker-compose.yml      # Orchestrates Streamlit app + ChromaDB
+├── .env                    # API credentials (GROQ_API_KEY and GROQ_MODEL)
+├── requirements.txt        # Python dependencies
+└── README.md               # Project documentation
 ```
 
 ---
 
-## 🛠️ Setup Instructions
+## 🐳 Docker Setup
 
-### 1. Clone the repository
+### 1. Docker Compose File
 
-```bash
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+```yaml
+version: "3.9"
+services:
+  chroma:
+    image: chromadb/chroma
+    container_name: chroma-vector-db
+    volumes:
+      - ./data_store:/chroma/chroma
+    ports:
+      - "8000:8000"
+
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    depends_on:
+      - chroma
+    volumes:
+      - .:/app
 ```
 
-### 2. Create and activate a virtual environment (optional but recommended)
+---
+
+### 2. Dockerfile
+
+```Dockerfile
+# Streamlit app Dockerfile
+FROM python:3.10-slim
+
+WORKDIR /app
+COPY . .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+EXPOSE 8501
+CMD ["streamlit", "run", "chatbot_main.py", "--server.port=8501", "--server.address=0.0.0.0"]
+```
+
+---
+
+## ✅ How It Works
+
+1. The backend loads a static PDF (`the-seven-habits.pdf`)
+2. The text is split into smaller chunks
+3. Each chunk is embedded into a vector using a sentence transformer model
+4. The vectors are stored in ChromaDB
+5. When a user sends a query:
+   - The query is embedded
+   - A similarity search retrieves relevant chunks
+   - The Groq LLM is prompted with both the query and the relevant context
+
+---
+
+## 💡 Technologies Used
+
+- **Streamlit** — UI for chat interactions
+- **LangChain** — Framework for chaining LLM calls and managing messages
+- **ChromaDB** — Vector store to store and retrieve document embeddings
+- **SentenceTransformers** — Local embedding model (`all-MiniLM-L6-v2`)
+- **Groq LLM (Llama 3)** — Used via LangChain’s `ChatGroq`
+
+---
+
+## 🌱 Future Improvements
+
+- Allow document uploads by users (optional)
+- Add citation sources from PDF in each answer
+- Add feedback mechanism to rate answers
+- Add PDF summarization feature
+- Host on a public cloud (e.g., Hugging Face Spaces or Render)
+
+---
+
+## 🏁 Getting Started (Local)
 
 ```bash
+git clone https://github.com/your-username/module-2.git
+cd module-2
+
+# Set up virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+source venv/bin/activate   # Windows: venv\Scripts\activate
 
-### 3. Install dependencies
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 4. Create a `.env` file
+# Create .env file
+echo "GROQ_API_KEY=your_key" > .env
+echo "GROQ_MODEL=llama-3-8b" >> .env
 
-Inside the root directory, create a `.env` file and add your API key and model:
-
-```env
-GROQ_API_KEY="your_groq_api_key_here"
-GROQ_MODEL="llama-3.1-8b-instant"
-```
-
-> 📝 You can get a Groq API key at https://console.groq.com/
-
----
-
-### 5. Run the app
-
-```bash
-streamlit run chatbot_app.py
-```
-
-Then open your browser at the local address shown (e.g., http://localhost:8501).
-
----
-
-## 📦 Example `requirements.txt`
-
-```txt
-streamlit
-langchain-groq
-python-dotenv
+# Run with Streamlit
+streamlit run chatbot_main.py
 ```
 
 ---
-# 🧠 PDF → Chunks → Embeddings → Chroma Pipeline
 
-A simple pipeline that:
-1. Loads a PDF document  
-2. Splits it into token-based chunks  
-3. Embeds each chunk using Azure OpenAI  
-4. Stores the resulting vectors in a Chroma vector database  
-5. Supports semantic search over the stored chunks
+## ✍️ Author
 
----
-
-## 🚀 Prerequisites
-
-- Python 3.9+  
-- Azure OpenAI resource & key  
-- Docker & Docker‑Compose (for Chroma container)  
-- PDF placed in `./data/`
-
----
-
-## ⚙️ Setup & Configuration
-
-1. Add Azure credentials to a `.env` file  
-2. (Optional) Run Chroma via Docker Compose
-
----
-
-## 📁 Project Structure
-
+Built by [Your Byaruhanga Johnson]
 
