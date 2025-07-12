@@ -1,1 +1,5 @@
 .env
+chromadb_database
+.venv
+README.md
+docker-compose.yml 

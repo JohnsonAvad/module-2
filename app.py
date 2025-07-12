@@ -26,6 +26,7 @@ st.write(f"📅 Today is **{today}**")
 # Checks if LLM is already stored in session
 #  state to prevent reinitializing
 #  on every rerun
+
 if "llm" not in st.session_state:
     st.session_state.llm = ChatGroq(
         model=groq_model,
@@ -53,9 +54,10 @@ for message in st.session_state.messages:
 
 #  Generate response with a RAG function
 # Step1 is to embed the query
+# RAG PIPELINE
 def generate_rag_response(query: str):
     query_embedding = np.array(embedding_function([query])[0])
-    results = collection.query(query_embeddings=query_embedding, n_results=2)
+    results = collection.query(query_embeddings=query_embedding, n_results=4)
     retrieved_docs = results["documents"][0]
     context = "\n\n".join(retrieved_docs)
 

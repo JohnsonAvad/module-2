@@ -5,7 +5,6 @@ from pprint import pprint
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 import os
-
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 
